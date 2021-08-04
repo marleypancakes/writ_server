@@ -1,0 +1,19 @@
+{
+  "name": "writ_server",
+  "version": "1.0.0",
+  "description": "back end for writ chrome extension",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.10",
+    "cors": "^2.8.5",
+    "diff-match-patch": "^1.0.5",
+    "express": "^4.17.1",
+    "node-fetch": "^2.6.1"
+  }
+}
