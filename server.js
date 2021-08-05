@@ -97,12 +97,12 @@ app.post('/', (req, res) => {
                         }
                         const dmp = new diff_match_patch();
 
-                        let headline_diffs = dmp.diff_main(archive_data.headline, headline );
+                        let headline_diffs = dmp.diff_main(headline, archive_data.headline);
                         dmp.diff_cleanupSemantic(headline_diffs);
                         diff_data.headline = dmp.diff_prettyHtml(headline_diffs);
 
                         for (let i = 0; i < page_body.length; i++) {
-                            let body_diffs = dmp.diff_main(archive_data.body[i], page_body[i]);
+                            let body_diffs = dmp.diff_main(page_body[i], archive_data.body[i]);
                             dmp.diff_cleanupSemantic(body_diffs);
                             diff_data.body[i] = dmp.diff_prettyHtml(body_diffs);
                         }
