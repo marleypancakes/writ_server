@@ -66,11 +66,14 @@ app.post('/', (req, res) => {
                     archive_data.headline = $('h1').text();
 
                     if (url.match(/www\.cnn\.com/)) {
-                        $('p').each(function (i, elm) {
+                        $('.zn-body__paragraph').each(function (i, elm) {
+                            archive_data.body[i] = $(this).text();
+                        })
+                        $('p.paragraph').each(function (i, elm) {
                             archive_data.body[i] = $(this).text();
                         })
                     } else {
-                        $('.zn-body__paragraph').each(function (i, elm) {
+                        $('p').each(function (i, elm) {
                             archive_data.body[i] = $(this).text();
                         })
 
@@ -88,7 +91,7 @@ app.post('/', (req, res) => {
                             archive_data.body.push(" ")
                         };
 
-                        console.log(archive_data.body.length);
+                        console.log(archive_data.body);
                         console.log(page_body.length);
 
                         const diff_data = {
@@ -102,7 +105,7 @@ app.post('/', (req, res) => {
                         diff_data.headline = dmp.diff_prettyHtml(headline_diffs);
 
                         for (let i = 0; i < page_body.length; i++) {
-                            let body_diffs = dmp.diff_main(page_body[i], archive_data.body[i]);
+                            let body_diffs = dmp.diff_main(archive_data.body[i], page_body[i]);
                             dmp.diff_cleanupSemantic(body_diffs);
                             diff_data.body[i] = dmp.diff_prettyHtml(body_diffs);
                         }
