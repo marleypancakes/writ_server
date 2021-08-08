@@ -2,7 +2,7 @@ const express = require('express')
 const cors = require('cors')
 const cheerio = require('cheerio')
 const fetch = require('node-fetch')
-const diff_match_patch = require('diff-match-patch')
+const utils = require('./utils')
 
 const app = express();
 app.use(express.json())
@@ -15,19 +15,11 @@ app.listen(port, () => console.log(`Listening on port ${port}`))
 const archivePrefix = "https://web.archive.org/web/"
 const timeMapPrefix = "https://web.archive.org/web/timemap/"
 
-const getFirstTimestamp = (data) => {
-    const re = /\d{14}/;
-    if (re.test(data)) {
-        return data.match(re)[0];
-    } else {
-        return ""
-    }
-}
-
 app.post('/', (req, res) => {
 
     const url = req.body.url;
     const page_body = req.body.body;
+
     const headline = req.body.headline;
 
     let archive_data = {
@@ -41,10 +33,10 @@ app.post('/', (req, res) => {
         .then((r) => r.text())
         .then((data) => {
             // console.log(data)
-            timestamp = getFirstTimestamp(data)
+            timestamp = utils.getFirstTimestamp(data)
 
             if (timestamp) {
-                let archiveUrl = archivePrefix + getFirstTimestamp(data) + '/' + url;
+                let archiveUrl = archivePrefix + timestamp + '/' + url;
                 archive_data.url = archiveUrl;
                 return archiveUrl;
             } else {
@@ -54,9 +46,20 @@ app.post('/', (req, res) => {
         .then((archive) => {
             if (!archive) {
                 console.log("No archive exists for this page")
-                res.send({ message: "No archive exists for this page" })
+                res.send({
+                    message: "archive not found",
+                    body: null
+                })
             }
-            console.log(archive);
+
+            // if (req.body.paywall) {
+            //     res.send({
+            //         message: 'paywall',
+            //         body: archive
+            //     })
+            // }
+
+            archive_data.archive_url = archive;
             fetch(archive)
                 .then((r) => r.text())
                 .then((data) => {
@@ -68,56 +71,34 @@ app.post('/', (req, res) => {
                     if (url.match(/www\.cnn\.com/)) {
                         $('.zn-body__paragraph').each(function (i, elm) {
                             archive_data.body[i] = $(this).text();
-                        })
+                        });
                         $('p.paragraph').each(function (i, elm) {
                             archive_data.body[i] = $(this).text();
-                        })
+                        });
                     } else {
                         $('p').each(function (i, elm) {
                             archive_data.body[i] = $(this).text();
-                        })
+                        });
 
                     }
 
-                    console.log(req.body.headline)
-                    console.log(`Paragraphs in current article: ${page_body.length}`)
-                    console.log(`Paragraphs in archived article: ${archive_data.body.length}`)
+                    while (archive_data.body.length < page_body.length) {
+                        archive_data.body.push(" ")
+                    };
 
-                    if (page_body.length < archive_data.body.length) {
-                        res.send({ message: "The page you're viewing may be behind a paywall. Would you like to load an archived copy?" })
-                    } else {
+                    while (archive_data.body.length < page_body.length) {
+                        archive_data.body.push(" ")
+                    };
 
-                        while (archive_data.body.length < page_body.length) {
-                            archive_data.body.push(" ")
-                        };
+                    const diff_data = utils.pageDiffs(headline, page_body, archive_data);
 
-                        console.log(archive_data.body);
-                        console.log(page_body.length);
-
-                        const diff_data = {
-                            headline: '',
-                            body: []
-                        }
-                        const dmp = new diff_match_patch();
-
-                        let headline_diffs = dmp.diff_main(headline, archive_data.headline);
-                        dmp.diff_cleanupSemantic(headline_diffs);
-                        diff_data.headline = dmp.diff_prettyHtml(headline_diffs);
-
-                        for (let i = 0; i < page_body.length; i++) {
-                            let body_diffs = dmp.diff_main(archive_data.body[i], page_body[i]);
-                            dmp.diff_cleanupSemantic(body_diffs);
-                            diff_data.body[i] = dmp.diff_prettyHtml(body_diffs);
-                        }
-                        console.log(diff_data);
-                        res.send(diff_data);
-
-                    }
-
-
+                    res.send({
+                        message: 'success',
+                        archiveUrl: archive_data.url,
+                        body: diff_data
+                    });
                 })
                 .catch((err) => console.log(err))
         })
         .catch((err) => console.log(err))
-
 });
